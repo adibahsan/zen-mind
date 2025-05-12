@@ -9,6 +9,7 @@ export default function TabLayout() {
   
   return (
     <Tabs
+      initialRouteName="home"
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
@@ -47,10 +48,10 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="journal"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
+          title: 'Journal',
+          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
         }}
       />
       <Tabs.Screen
@@ -61,10 +62,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="journal"
+        name="home"
         options={{
-          title: 'Journal',
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
         }}
       />
       <Tabs.Screen
