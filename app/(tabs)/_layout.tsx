@@ -44,40 +44,38 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         headerShown: false,
-        // Remove the custom tabBarButton implementation that's causing the error
-        // The default tabBarButton implementation will be used instead
       }}
     >
       <Tabs.Screen
-        name="home/index"
+        name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
         }}
       />
       <Tabs.Screen
-        name="meditate/index"
+        name="meditate"
         options={{
           title: 'Meditate',
           tabBarIcon: ({ color, size }) => <Timer color={color} size={24} />,
         }}
       />
       <Tabs.Screen
-        name="journal/index"
+        name="journal"
         options={{
           title: 'Journal',
           tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
         }}
       />
       <Tabs.Screen
-        name="stats/index"
+        name="stats"
         options={{
           title: 'Stats',
           tabBarIcon: ({ color, size }) => <BarChart2 color={color} size={24} />,
         }}
       />
       <Tabs.Screen
-        name="settings/index"
+        name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => <Settings color={color} size={24} />,
