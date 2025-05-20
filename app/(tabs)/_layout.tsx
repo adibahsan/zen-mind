@@ -56,7 +56,7 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="meditate"
+          name="meditation"
           options={{
             title: 'Meditate',
             tabBarIcon: ({ color, size }) => <Timer color={color} size={24} />,

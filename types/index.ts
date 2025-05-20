@@ -46,3 +46,6 @@ export interface MeditationType {
   icon: string;
   color: string;
 }
+
+// Export types from other files in the types directory
+export * from './meditation';

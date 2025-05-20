@@ -1,0 +1,387 @@
+// app/(tabs)/meditate.tsx
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
+import { MeditationTrack } from '@/types';
+import { sampleMeditations } from '@/data/sampleMeditations';
+import { DownloadCloud, PlayCircle, PauseCircle } from 'lucide-react-native';
+import { Audio, AVPlaybackStatus } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const MEDITATION_TRACKS_STORAGE_KEY = '@ZenMind:MeditationTracks';
+
+// Helper function to format milliseconds to MM:SS
+const formatMillisToTime = (millis: number | undefined): string => {
+  if (millis === undefined) return '00:00';
+  const totalSeconds = Math.floor(millis / 1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60);
+  return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+};
+
+// Player Controls Component
+interface PlayerControlsProps {
+  track: MeditationTrack | null;
+  playbackStatus: AVPlaybackStatus | null;
+  isPlaying: boolean;
+  onPlayPausePress: () => void;
+  colors: ReturnType<typeof useTheme>['colors'];
+}
+
+const PlayerControls: React.FC<PlayerControlsProps> = ({
+  track,
+  playbackStatus,
+  isPlaying,
+  onPlayPausePress,
+  colors,
+}) => {
+  if (!track || !playbackStatus || !playbackStatus.isLoaded) {
+    return null;
+  }
+
+  const { positionMillis, durationMillis } = playbackStatus;
+  const progress = durationMillis ? (positionMillis / durationMillis) * 100 : 0;
+
+  return (
+    <View style={[styles.playerControlsContainer, { backgroundColor: colors.cardBackground }]}>
+      <Text style={[styles.playerTrackTitle, { color: colors.textPrimary }]}>{track.title}</Text>
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBar, { width: `${progress}%`, backgroundColor: colors.primary }]} />
+      </View>
+      <View style={styles.timeContainer}>
+        <Text style={[styles.timeText, { color: colors.textSecondary }]}>{formatMillisToTime(positionMillis)}</Text>
+        <TouchableOpacity onPress={onPlayPausePress} style={styles.playerPlayPauseButton}>
+          {isPlaying ? (
+            <PauseCircle color={colors.primary} size={36} />
+          ) : (
+            <PlayCircle color={colors.primary} size={36} />
+          )}
+        </TouchableOpacity>
+        <Text style={[styles.timeText, { color: colors.textSecondary }]}>{formatMillisToTime(durationMillis)}</Text>
+      </View>
+    </View>
+  );
+};
+
+
+export default function MeditateScreen() {
+  const { colors } = useTheme();
+  const [meditationTracks, setMeditationTracks] = useState<MeditationTrack[]>([]);
+  const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [playbackStatus, setPlaybackStatus] = useState<AVPlaybackStatus | null>(null);
+
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+
+    const loadAndMergeData = async () => {
+      setIsLoading(true);
+      try {
+        const storedTracksJson = await AsyncStorage.getItem(MEDITATION_TRACKS_STORAGE_KEY);
+        const storedTracks: MeditationTrack[] = storedTracksJson ? JSON.parse(storedTracksJson) : [];
+        
+        const mergedTracks = sampleMeditations.map(sampleTrack => {
+          const storedTrack = storedTracks.find(st => st.id === sampleTrack.id);
+          return storedTrack ? { ...sampleTrack, ...storedTrack } : sampleTrack;
+        });
+        
+        setMeditationTracks(mergedTracks);
+      } catch (e) {
+        console.error('Failed to load meditation tracks from storage', e);
+        setMeditationTracks(sampleMeditations);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadAndMergeData();
+  }, []);
+
+  useEffect(() => {
+    const saveData = async () => {
+      if (!isLoading && meditationTracks.length > 0) {
+        try {
+          const jsonValue = JSON.stringify(meditationTracks);
+          await AsyncStorage.setItem(MEDITATION_TRACKS_STORAGE_KEY, jsonValue);
+        } catch (e) {
+          console.error('Failed to save meditation tracks to storage', e);
+        }
+      }
+    };
+    saveData();
+  }, [meditationTracks, isLoading]);
+
+  useEffect(() => {
+    return sound
+      ? () => { sound.unloadAsync(); }
+      : undefined;
+  }, [sound]);
+
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    setPlaybackStatus(status);
+    if (status.isLoaded) {
+      setIsPlaying(status.isPlaying); // Sync isPlaying with actual status
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        // Consider whether to setCurrentPlayingId(null) or allow replay
+        // sound?.setPositionAsync(0); // Reset position for replay
+      }
+    } else { // If unloaded or error
+        setIsPlaying(false);
+        // if (status.error) console.error(`Playback Error: ${status.error}`);
+    }
+  };
+  
+  const playPauseCurrentTrack = async () => {
+    if (!sound || !currentPlayingId) return;
+
+    const trackToPlayPause = meditationTracks.find(t => t.id === currentPlayingId);
+    if (!trackToPlayPause) return;
+
+    // Call handleItemPress to reuse its logic for playing/pausing the current track
+    // This might need refinement if handleItemPress becomes too complex for just this
+    await handleItemPress(trackToPlayPause);
+  };
+
+
+  const handleItemPress = async (track: MeditationTrack) => {
+    if (track.isDownloaded && track.localPath) {
+      if (currentPlayingId === track.id && sound) { // Track is already loaded
+          if (isPlaying) {
+            await sound.pauseAsync();
+          } else {
+            await sound.playAsync();
+          }
+          // isPlaying state will be updated by onPlaybackStatusUpdate
+      } else { // New track selected or different track was playing
+        if (sound) { 
+          await sound.unloadAsync();
+        }
+        const newSound = new Audio.Sound();
+        try {
+          newSound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+          await newSound.loadAsync({ uri: track.localPath }, { shouldPlay: true });
+          setSound(newSound);
+          setCurrentPlayingId(track.id);
+          // isPlaying will be set by onPlaybackStatusUpdate
+        } catch (error) {
+          console.error('Error loading or playing sound:', error);
+          setCurrentPlayingId(null);
+          setSound(null);
+        }
+      }
+    } else if (downloadingTrackId === track.id) {
+      // Already downloading
+    } else {
+      setDownloadingTrackId(track.id);
+      try {
+        const fileExtension = track.audioUrl.split('.').pop() || 'mp3';
+        const fileName = `${track.id}_${track.title.replace(/\s+/g, '_')}.${fileExtension}`;
+        const localUri = `${FileSystem.documentDirectory}${fileName}`;
+        const downloadResult = await FileSystem.downloadAsync(track.audioUrl, localUri);
+
+        if (downloadResult.status === 200) {
+          setMeditationTracks(prevTracks =>
+            prevTracks.map(t =>
+              t.id === track.id ? { ...t, isDownloaded: true, localPath: downloadResult.uri } : t
+            )
+          );
+        } else {
+          console.error('Download failed:', downloadResult.status);
+        }
+      } catch (error) {
+        console.error('Error downloading track:', track.title, error);
+      } finally {
+        setDownloadingTrackId(null);
+      }
+    }
+  };
+
+  const renderMeditationItem = ({ item }: { item: MeditationTrack }) => (
+    <TouchableOpacity 
+      style={[styles.itemContainer, { backgroundColor: colors.cardBackground }]} 
+      onPress={() => handleItemPress(item)}
+      disabled={downloadingTrackId === item.id}
+    >
+      <View style={styles.itemTextContainer}>
+        <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{item.title}</Text>
+        {item.duration && (
+          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>\
+            {formatMillisToTime(item.duration * 1000)}
+          </Text>
+        )}
+        <Text style={[styles.itemStatus, { color: item.isDownloaded ? colors.success : colors.textSecondary}]}>
+          {downloadingTrackId === item.id 
+            ? 'Downloading...'
+            : item.isDownloaded 
+              ? (currentPlayingId === item.id ? (isPlaying ? 'Playing' : 'Paused') : 'Downloaded')
+              : 'Tap to download'}
+        </Text>
+      </View>
+      <View style={styles.itemIconContainer}>
+        {downloadingTrackId === item.id ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : item.isDownloaded ? (
+          currentPlayingId === item.id && isPlaying ? (
+            <PauseCircle color={colors.primary} size={32} />
+          ) : (
+            <PlayCircle color={colors.primary} size={32} />
+          )
+        ) : (
+          <DownloadCloud color={colors.primary} size={32} />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+  
+  const currentTrackForPlayer = meditationTracks.find(t => t.id === currentPlayingId);
+
+  if (isLoading && meditationTracks.length === 0) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Guided Meditations</Text>
+      {meditationTracks.length === 0 && !isLoading ? (
+         <View style={styles.centered}>
+            <Text style={{color: colors.textSecondary}}>No meditations available.</Text>
+         </View>
+      ) : (
+        <FlatList
+          data={meditationTracks}
+          renderItem={renderMeditationItem}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          contentContainerStyle={styles.listContentContainer}
+          extraData={{ downloadingTrackId, currentPlayingId, isPlaying }}
+        />
+      )}
+      {currentTrackForPlayer && playbackStatus && playbackStatus.isLoaded && (
+        <PlayerControls
+          track={currentTrackForPlayer}
+          playbackStatus={playbackStatus}
+          isPlaying={isPlaying}
+          onPlayPausePress={playPauseCurrentTrack}
+          colors={colors}
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1, // Ensure centered content takes full available space if list is empty
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginTop: Platform.OS === 'ios' ? 50 : 30,
+    marginBottom: 20,
+    marginLeft: 20,
+  },
+  list: {
+    width: '100%',
+  },
+  listContentContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 80, // Add padding to avoid overlap with player controls
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  itemTextContainer: {
+    flex: 1,
+  },
+  itemTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  itemDuration: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  itemStatus: {
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  itemIconContainer: {
+    marginLeft: 15,
+  },
+  // Player Controls Styles
+  playerControlsContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10, // Safer area for iOS
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0', // Use a theme color later
+    // elevation: 10, // For Android shadow
+    // shadowColor: '#000', // For iOS shadow
+    // shadowOffset: { width: 0, height: -2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
+  },
+  playerTrackTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: '#e0e0e0', // Use a theme color for track background
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 12,
+    minWidth: 40, // Ensure space for time
+  },
+   playerPlayPauseButton: {
+    paddingHorizontal: 10, // Give some touch area
+  }
+});
