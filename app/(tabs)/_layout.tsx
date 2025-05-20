@@ -8,85 +8,92 @@ export default function TabLayout() {
   const { colors } = useTheme();
   
   return (
-    <Tabs
-      initialRouteName="home"
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.cardBackground,
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
-          height: 60,
-          paddingBottom: 10,
-          ...Platform.select({
-            web: {
-              boxShadow: '0px -2px 10px rgba(0, 0, 0, 0.05)',
-            },
-            default: {
-              shadowColor: '#000',
-              shadowOffset: {
-                width: 0,
-                height: -2,
+    <View style={[styles.appBorderContainer, { borderColor: colors.textSecondary /* Consider adding a specific theme color like colors.border or colors.outline */ }]}>
+      <Tabs
+        initialRouteName="home"
+        screenOptions={{
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: colors.cardBackground,
+            borderTopWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+            height: 60,
+            paddingBottom: 10,
+            ...Platform.select({
+              web: {
+                boxShadow: '0px -2px 10px rgba(0, 0, 0, 0.05)',
               },
-              shadowOpacity: 0.05,
-              shadowRadius: 10,
-            },
-          }),
-        },
-        tabBarShowLabel: true,
-        tabBarLabelStyle: {
-          fontFamily: 'Inter-Medium',
-          fontSize: 12,
-          paddingBottom: 4,
-        },
-        tabBarItemStyle: {
-          paddingTop: 8,
-        },
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="journal"
-        options={{
-          title: 'Journal',
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
+              default: {
+                shadowColor: '#000',
+                shadowOffset: {
+                  width: 0,
+                  height: -2,
+                },
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+              },
+            }),
+          },
+          tabBarShowLabel: false, // Labels are now hidden
+          tabBarLabelStyle: {
+            fontFamily: 'Inter-Medium',
+            fontSize: 12,
+            paddingBottom: 4,
+          },
+          tabBarItemStyle: {
+            paddingTop: 8,
+          },
+          headerShown: false,
         }}
-      />
-      <Tabs.Screen
-        name="meditate"
-        options={{
-          title: 'Meditate',
-          tabBarIcon: ({ color, size }) => <Timer color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          title: 'Stats',
-          tabBarIcon: ({ color, size }) => <BarChart2 color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={24} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="journal"
+          options={{
+            title: 'Journal',
+            tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="meditate"
+          options={{
+            title: 'Meditate',
+            tabBarIcon: ({ color, size }) => <Timer color={color} size={24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="stats"
+          options={{
+            title: 'Stats',
+            tabBarIcon: ({ color, size }) => <BarChart2 color={color} size={24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color, size }) => <Settings color={color} size={24} />,
+          }}
+        />
+      </Tabs>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  appBorderContainer: {
+    flex: 1,
+    borderWidth: 1, // Added 1px border
+    // borderColor is applied dynamically above using theme's textSecondary color
+  },
   tabButton: {
     flex: 1,
     justifyContent: 'center',
