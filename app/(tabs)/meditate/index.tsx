@@ -66,7 +66,7 @@ export default function MeditateScreen() {
         </View>
 
         <View style={[styles.section, { marginHorizontal: spacing.md }]}>
-          <TouchableOpacity 
+          {/* <TouchableOpacity 
             style={[styles.breathingExerciseCard, { backgroundColor: colors.cardBackground }]}
             onPress={() => router.push('/meditate/breathing')}
           >
@@ -76,6 +76,22 @@ export default function MeditateScreen() {
               </Text>
               <Text style={[styles.breathingExerciseSubtitle, { color: colors.textSecondary }]}>
                 Calm your mind with guided patterns
+              </Text>
+            </View>
+            <ChevronRight size={20} color={colors.textSecondary} />
+          </TouchableOpacity> */}
+          
+          {/* Guided Meditations Card */}
+          <TouchableOpacity 
+            style={[styles.breathingExerciseCard, { backgroundColor: colors.cardBackground, marginTop: 12 }]}
+            onPress={() => router.push('/meditate/guided')}
+          >
+            <View style={styles.breathingExerciseContent}>
+              <Text style={[styles.breathingExerciseTitle, { color: colors.textPrimary }]}>
+                Guided Meditations
+              </Text>
+              <Text style={[styles.breathingExerciseSubtitle, { color: colors.textSecondary }]}>
+                Listen to calming guided meditations
               </Text>
             </View>
             <ChevronRight size={20} color={colors.textSecondary} />
