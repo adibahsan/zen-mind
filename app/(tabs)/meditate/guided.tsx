@@ -1,18 +1,18 @@
 // app/(tabs)/meditate/guided.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, DownloadCloud, PlayCircle, PauseCircle, SkipBack, SkipForward } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { MeditationTrack } from '@/types';
-import { sampleMeditations } from '@/data/sampleMeditations';
-import { DownloadCloud, PlayCircle, PauseCircle, SkipBack, SkipForward } from 'lucide-react-native';
 import { Audio } from 'expo-av';
-import { useAudioPlayer } from '@/context/AudioPlayerContext';
-import { FullScreenPlayer } from '@/components/player/FullScreenPlayer';
-import * as FileSystem from 'expo-file-system';
+import { sampleMeditations } from '@/data/sampleMeditations';
+import { MeditationTrack } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
+import { FullScreenPlayer } from '@/components/player/FullScreenPlayer';
+import { useAudioPlayer } from '@/context/AudioPlayerContext';
 
+// Storage key for meditation tracks
 const MEDITATION_TRACKS_STORAGE_KEY = '@ZenMind:MeditationTracks';
 
 // Helper function to format milliseconds to MM:SS
@@ -42,28 +42,42 @@ export default function GuidedMeditationsScreen() {
     isMinimized
   } = useAudioPlayer();
 
+  // Function to load and merge meditation data
+  const loadAndMergeData = async () => {
+    setIsLoading(true);
+    try {
+      const storedTracksJson = await AsyncStorage.getItem(MEDITATION_TRACKS_STORAGE_KEY);
+      const storedTracks: MeditationTrack[] = storedTracksJson ? JSON.parse(storedTracksJson) : [];
+      
+      // Use the latest sample meditations as the base
+      const mergedTracks = sampleMeditations.map(sampleTrack => {
+        const storedTrack = storedTracks.find(st => st.id === sampleTrack.id);
+        return storedTrack ? { ...sampleTrack, ...storedTrack } : sampleTrack;
+      });
+      
+      setMeditationTracks(mergedTracks);
+    } catch (error) {
+      console.error('Error loading meditation tracks:', error);
+      setMeditationTracks(sampleMeditations);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to clear local storage for meditation tracks
+  const clearMeditationTracksStorage = async () => {
+    try {
+      await AsyncStorage.removeItem(MEDITATION_TRACKS_STORAGE_KEY);
+      Alert.alert('Success', 'Meditation tracks storage has been cleared. Reloading data...');
+      loadAndMergeData(); // Reload data after clearing storage
+    } catch (error) {
+      console.error('Error clearing meditation tracks storage:', error);
+      Alert.alert('Error', 'Failed to clear storage');
+    }
+  };
+  
   useEffect(() => {
     // Audio mode is now set in the AudioPlayerContext
-
-    const loadAndMergeData = async () => {
-      setIsLoading(true);
-      try {
-        const storedTracksJson = await AsyncStorage.getItem(MEDITATION_TRACKS_STORAGE_KEY);
-        const storedTracks: MeditationTrack[] = storedTracksJson ? JSON.parse(storedTracksJson) : [];
-        
-        const mergedTracks = sampleMeditations.map(sampleTrack => {
-          const storedTrack = storedTracks.find(st => st.id === sampleTrack.id);
-          return storedTrack ? { ...sampleTrack, ...storedTrack } : sampleTrack;
-        });
-        
-        setMeditationTracks(mergedTracks);
-      } catch (e) {
-        console.error('Failed to load meditation tracks from storage', e);
-        setMeditationTracks(sampleMeditations);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     loadAndMergeData();
   }, []);
 
@@ -179,6 +193,12 @@ export default function GuidedMeditationsScreen() {
               <ChevronLeft color={colors.textPrimary} size={24} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Guided Meditations</Text>
+            <TouchableOpacity 
+              style={styles.resetButton} 
+              onPress={clearMeditationTracksStorage}
+            >
+              <Text style={[styles.resetButtonText, { color: colors.primary }]}>Reset</Text>
+            </TouchableOpacity>
           </View>
           {meditationTracks.length === 0 && !isLoading ? (
             <View style={styles.centered}>
@@ -206,6 +226,15 @@ export default function GuidedMeditationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  resetButton: {
+    marginLeft: 'auto',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   centered: {
     flex: 1, // Ensure centered content takes full available space if list is empty
