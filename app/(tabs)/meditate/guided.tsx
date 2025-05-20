@@ -1,6 +1,8 @@
-// app/(tabs)/meditate.tsx
+// app/(tabs)/meditate/guided.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { MeditationTrack } from '@/types';
 import { sampleMeditations } from '@/data/sampleMeditations';
@@ -65,7 +67,7 @@ const PlayerControls: React.FC<PlayerControlsProps> = ({
 };
 
 
-export default function MeditateScreen() {
+export default function GuidedMeditationsScreen() {
   const { colors } = useTheme();
   const [meditationTracks, setMeditationTracks] = useState<MeditationTrack[]>([]);
   const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
@@ -216,7 +218,7 @@ export default function MeditateScreen() {
       <View style={styles.itemTextContainer}>
         <Text style={[styles.itemTitle, { color: colors.textPrimary }]}>{item.title}</Text>
         {item.duration && (
-          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>\
+          <Text style={[styles.itemDuration, { color: colors.textSecondary }]}>
             {formatMillisToTime(item.duration * 1000)}
           </Text>
         )}
@@ -256,7 +258,15 @@ export default function MeditateScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Guided Meditations</Text>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <ChevronLeft color={colors.textPrimary} size={24} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Guided Meditations</Text>
+      </View>
       {meditationTracks.length === 0 && !isLoading ? (
          <View style={styles.centered}>
             <Text style={{color: colors.textSecondary}}>No meditations available.</Text>
@@ -293,12 +303,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: Platform.OS === 'ios' ? 50 : 30,
     marginBottom: 20,
-    marginLeft: 20,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    padding: 4,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   list: {
     width: '100%',
