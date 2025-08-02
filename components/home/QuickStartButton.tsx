@@ -1,88 +1,59 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
-import { Sun, Wind, Target, Heart, Activity, Smile } from 'lucide-react-native';
 
 interface QuickStartButtonProps {
   title: string;
   subtitle: string;
   onPress: () => void;
-  icon: string;
+  icon: keyof typeof Feather.glyphMap;
   color: string;
 }
 
-export default function QuickStartButton({ 
-  title, 
-  subtitle, 
-  onPress, 
-  icon,
-  color 
-}: QuickStartButtonProps) {
-  const { colors } = useTheme();
-  
-  const renderIcon = () => {
-    const iconProps = {
-      size: 24,
-      color: 'white',
-    };
-    
-    switch (icon) {
-      case 'sun':
-        return <Sun {...iconProps} />;
-      case 'wind':
-        return <Wind {...iconProps} />;
-      case 'target':
-        return <Target {...iconProps} />;
-      case 'heart':
-        return <Heart {...iconProps} />;
-      case 'activity':
-        return <Activity {...iconProps} />;
-      case 'smile':
-        return <Smile {...iconProps} />;
-      default:
-        return <Sun {...iconProps} />;
-    }
-  };
+const QuickStartButton: React.FC<QuickStartButtonProps> = ({ title, subtitle, onPress, icon, color }) => {
+  const { colors, spacing } = useTheme();
 
   return (
-    <TouchableOpacity
-      style={[styles.container, { backgroundColor: colors.cardBackground }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: color }]}>
-        {renderIcon()}
+    <TouchableOpacity onPress={onPress} style={[styles.container, { backgroundColor: color, borderRadius: 16 }]}>
+      <View style={styles.content}>
+        <Feather name={icon} size={28} color={colors.cardBackground} />
+        <View style={styles.textContainer}>
+          <Text style={[styles.title, { color: colors.cardBackground }]}>{title}</Text>
+          <Text style={[styles.subtitle, { color: colors.cardBackground }]}>{subtitle}</Text>
+        </View>
       </View>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
-    width: '30%',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 8,
+    height: 140,
+    padding: 16,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
+  content: {
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    flex: 1,
+  },
+  textContainer: {
+    marginTop: 12,
+    alignItems: 'center',
   },
   title: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 4,
+    fontFamily: 'Inter-Medium',
+    fontSize: 20,
+    opacity: 0.9,
   },
   subtitle: {
     fontFamily: 'Inter-Regular',
     fontSize: 12,
-    textAlign: 'center',
+    opacity: 0.7,
+    marginTop: 4,
   },
 });
+
+export default QuickStartButton;

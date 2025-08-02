@@ -82,6 +82,5 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </ThemeContext.Provider>
   );
 };
-
 // Custom hook to use the theme context
 export const useTheme = () => useContext(ThemeContext);

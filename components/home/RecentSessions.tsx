@@ -1,16 +1,36 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { MeditationSession } from '@/types';
-import { formatDateShort } from '@/utils/dateHelpers';
 import { formatDuration } from '@/utils/timeHelpers';
-import { getMeditationTypeById, getMeditationTypeColor } from '@/data/meditationTypes';
-import { ChevronRight } from 'lucide-react-native';
+import { getMeditationTypeById } from '@/data/meditationTypes';
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
+
+const { width } = Dimensions.get('window');
 
 interface RecentSessionsProps {
   sessions: MeditationSession[];
 }
+
+const SessionCard: React.FC<{ session: MeditationSession }> = ({ session }) => {
+  const { colors, spacing } = useTheme();
+  const meditationType = getMeditationTypeById(session.type);
+
+  if (!meditationType) return null;
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.cardBackground, borderRadius: 16 }]}>
+      <Feather name={meditationType.icon as any} size={28} color={colors.primary} />
+      <Text style={[styles.cardTitle, { color: colors.textPrimary, marginTop: spacing.sm }]}>
+        {meditationType.name}
+      </Text>
+      <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+        {formatDuration(Math.round(session.duration / 60))}
+      </Text>
+    </View>
+  );
+};
 
 export default function RecentSessions({ sessions }: RecentSessionsProps) {
   const { colors, spacing } = useTheme();
@@ -20,98 +40,55 @@ export default function RecentSessions({ sessions }: RecentSessionsProps) {
   }
 
   return (
-    <View style={{ marginHorizontal: spacing.md }}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Recent Sessions
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.push('/stats')}
-          style={styles.viewAllButton}
-        >
-          <Text style={[styles.viewAllText, { color: colors.primary }]}>
-            View All
-          </Text>
-          <ChevronRight size={16} color={colors.primary} />
+    <View>
+      <View style={[styles.header, { paddingHorizontal: spacing.lg, marginBottom: spacing.md }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Recent Sessions</Text>
+        <TouchableOpacity onPress={() => router.push('/stats')}>
+          <Text style={[styles.headerButton, { color: colors.primary }]}>View All</Text>
         </TouchableOpacity>
       </View>
-
-      {sessions.map((session) => {
-        const meditationType = getMeditationTypeById(session.type);
-        const sessionDuration = Math.round(session.duration / 60);
-        
-        return (
-          <View 
-            key={session.id}
-            style={[
-              styles.sessionCard, 
-              { 
-                backgroundColor: colors.cardBackground,
-                borderLeftColor: getMeditationTypeColor(session.type) 
-              }
-            ]}
-          >
-            <View style={styles.sessionInfo}>
-              <Text style={[styles.sessionType, { color: colors.textPrimary }]}>
-                {meditationType?.name || 'Meditation'}
-              </Text>
-              <Text style={[styles.sessionDate, { color: colors.textSecondary }]}>
-                {formatDateShort(new Date(session.date))}
-              </Text>
-            </View>
-            <Text style={[styles.sessionDuration, { color: colors.textPrimary }]}>
-              {formatDuration(sessionDuration)}
-            </Text>
-          </View>
-        );
-      })}
+      <FlatList
+        data={sessions}
+        renderItem={({ item }) => <SessionCard session={item} />}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg }}
+        snapToInterval={width * 0.6 + spacing.md}
+        decelerationRate="fast"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  sectionTitle: {
+  headerTitle: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 18,
   },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewAllText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    marginRight: 4,
-  },
-  sessionCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-  },
-  sessionInfo: {
-    flex: 1,
-  },
-  sessionType: {
+  headerButton: {
     fontFamily: 'Inter-Medium',
     fontSize: 16,
-    marginBottom: 4,
   },
-  sessionDate: {
+  card: {
+    width: width * 0.6,
+    padding: 16,
+    marginRight: 16,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    height: 150,
+  },
+  cardTitle: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 20,
+  },
+  cardSubtitle: {
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
-  },
-  sessionDuration: {
-    fontFamily: 'Inter-SemiBold',
     fontSize: 16,
   },
 });
