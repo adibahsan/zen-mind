@@ -9,6 +9,8 @@ import { MinimizedPlayer } from '@/components/player/MinimizedPlayer';
 import { useFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SplashScreen } from 'expo-router';
+import { View } from 'react-native';
+import ZenLoadingScreen from '@/components/common/ZenLoadingScreen';
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -29,9 +31,9 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  // Return null while fonts are loading
+  // Show custom zen loading screen while fonts are loading
   if (!fontsLoaded && !fontError) {
-    return null;
+    return <ZenLoadingScreen />;
   }
 
   return (
